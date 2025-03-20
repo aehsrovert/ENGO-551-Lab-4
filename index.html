@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calgary Building Permits & Traffic Incidents Map</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        #header {
+            background-color: #2a1a4a;
+            color: #e6c2ff;
+            padding: 5px 10px;
+            text-align: center;
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            text-shadow: 0 0 5px #bf93f5;
+        }
+        
+        #search-container {
+            padding: 5px 20px;
+            background-color: #1e1238;
+            border-bottom: 1px solid #4a2b7d;
+        }
+        
+        #search-form {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 0;
+        }
+        
+        #daterange {
+            padding: 8px;
+            border: 1px solid #4a2b7d;
+            border-radius: 4px;
+            min-width: 200px;
+            background-color: #342256;
+            color: #e6c2ff;
+        }
+        
+        #search-button {
+            padding: 8px 16px;
+            background-color: #8a54d0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #search-button:hover {
+            background-color: #a375e6;
+        }
+        
+        #layer-controls {
+            margin-top: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #e6c2ff;
+        }
+        
+        .layer-toggle {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+            cursor: pointer;
+            color: #e6c2ff;
+        }
+        
+        .layer-toggle input {
+            margin-right: 5px;
+        }
+        
+        #map {
+            flex-grow: 1;
+        }
+        
+        .loader {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+            color: #e6c2ff;
+        }
+        
+        .popup-content {
+            font-size: 14px;
+        }
+        
+        .popup-content h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        
+        .popup-content p {
+            margin: 5px 0;
+        }
+        
+        .leaflet-popup-content {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        #status-message {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            background-color: #4a2b7d;
+            color: #e6c2ff;
+            margin: 10px 0;
+        }
+        
+        .leaflet-popup-content-wrapper {
+            background-color: #2a1a4a;
+            color: #e6c2ff;
+        }
+        
+        .leaflet-popup-tip {
+            background-color: #2a1a4a;
+        }
+        
+        .leaflet-marker-icon:not(.marker-cluster) {
+            filter: hue-rotate(270deg) saturate(150%) brightness(120%) !important;
+        }
+        
+        .marker-spiderfied {
+            background-color: # !important;
+            border-color: #6b35c8 !important;
+        }
+        
+        .leaflet-marker-shadow {
+            opacity: 0.5;
+        }
+        
+        .marker-cluster-small {
+            background-color: rgba(191, 147, 245, 0.6) !important;
+        }
+        .marker-cluster-small div {
+            background-color: rgba(147, 87, 224, 0.8) !important;
+        }
+        
+        .marker-cluster-medium {
+            background-color: rgba(223, 137, 255, 0.6) !important;
+        }
+        .marker-cluster-medium div {
+            background-color: rgba(185, 68, 255, 0.8) !important;
+        }
+        
+        .marker-cluster-large {
+            background-color: rgba(255, 148, 255, 0.6) !important;
+        }
+        .marker-cluster-large div {
+            background-color: rgba(237, 98, 255, 0.8) !important;
+        }
+        
+        .marker-cluster div {
+            color: white !important;
+            text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+            font-weight: bold;
+        }
+        
+        .marker-cluster {
+            box-shadow: 0 0 10px rgba(191, 147, 245, 0.7);
+        }
+        
+        .leaflet-marker-icon.leaflet-div-icon {
+            background: #8a54d0 !important;
+            border-radius: 50%;
+            border: 2px solid #bf93f5 !important;
+        }
+        
+        .leaflet-div-icon {
+            background: #8a54d0 !important;
+            border: none !important;
+        }
+        
+        .leaflet-marker-icon {
+            filter: drop-shadow(0 0 8px rgba(191, 147, 245, 0.7));
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <h1>Calgary Building Permits & Traffic Incidents Map</h1>
+        </div>
+        
+        <div id="search-container">
+            <form id="search-form">
+                <label for="daterange">Date Range:</label>
+                <input type="text" id="daterange" name="daterange">
+                <button type="submit" id="search-button">Search Permits</button>
+            </form>
+            
+            <div id="layer-controls">
+                <label class="layer-toggle">
+                    <input type="checkbox" id="traffic-layer-toggle"> 
+                    Show 2017 Traffic Incidents Galaxy
+                </label>
+            </div>
+            
+            <div class="loader" id="loader">
+                <img src="https://i.gifer.com/ZKZg.gif" alt="Loading..." width="30">
+                Loading permits...
+            </div>
+            <div id="status-message"></div>
+        </div>
+        
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier-Leaflet/0.2.6/oms.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
